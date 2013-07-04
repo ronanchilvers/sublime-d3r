@@ -10,7 +10,7 @@ Clone this repository into your Packages folder
 
 cd Packages_Folder_Somewhere
 
-git clone git@github.com:ronanchilvers/sublime-d3r.git
+git clone https://github.com/ronanchilvers/sublime-d3r.git
 
 Usage
 -----
