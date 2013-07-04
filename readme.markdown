@@ -16,7 +16,7 @@ Usage
 
 The default keybindings are
 
-`ctrl+shift+alt+d` on Linux 
-`ctrl+super+alt+d` on OSX
+* `ctrl+shift+alt+d` on Linux 
+* `ctrl+super+alt+d` on OSX
 
 You can remap these of course if you want to. 
