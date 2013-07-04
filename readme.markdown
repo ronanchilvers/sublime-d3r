@@ -9,6 +9,7 @@ Installation
 Clone this repository into your Packages folder
 
 cd <Packages Folder>
+
 git clone git@github.com:ronanchilvers/sublime-d3r.git
 
 Usage
