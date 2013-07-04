@@ -8,7 +8,7 @@ import threading
 import subprocess
 import os
 
-class d3rCommand(sublime_plugin.WindowCommand):
+class SublimeD3rCommand(sublime_plugin.WindowCommand):
 
     options = ['Update DB', 'Run Queue']
     commands = ['update_db', 'run_queue']
