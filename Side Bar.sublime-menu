@@ -1,0 +1,23 @@
+[
+    // { 
+    //     "caption": "-", 
+    //     "id": "side-bar-start-separator" 
+    // },
+    // {
+    //     "caption": "D3R",
+    //     "id": "d3r-side-bar-menu",
+    //     "children":
+    //     [
+    //         { 
+    //             "caption": "New Model", 
+    //             "id": "side-bar-new-model",
+    //             "command": "sublime_d3r_new_model",
+    //             "args": {"paths": []} 
+    //         },
+    //     ]
+    // },
+    // { 
+    //     "caption": "-", 
+    //     "id": "side-bar-end-separator" 
+    // }
+]

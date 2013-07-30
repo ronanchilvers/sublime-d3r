@@ -8,22 +8,44 @@ import threading
 import subprocess
 import os
 
+def find_base_directory(rootDir = False):
+    debug = True
+    if False == rootDir:
+        debug = False
+        rootDir = sublime.active_window().active_view().file_name()
+
+    root = os.path.abspath(os.path.join(rootDir, os.pardir))
+
+    for dirname in os.listdir(root):
+        if "." == dirname or ".." == dirname:
+            continue
+        if "home" == dirname:
+            return False
+        if "/" == dirname:
+            return False
+        if "core" == dirname:
+            return root
+    return find_base_directory(root)
+
+
 class SublimeD3rCommand(sublime_plugin.WindowCommand):
 
-    options = ['Update DB', 'Run Queue']
-    commands = ['update_db', 'run_queue']
+    options = ['Update DB', 'Run Queue', 'New Model' ]
+    commands = ['update_db', 'run_queue', 'new_model' ]
     base = False
 
     def run(self):
-        self.base = self.find_base_directory()
-        if False == self.base:
-            sublime.error_message('Project doesn\'t seem to be a core project')
-            return
+        self.base = find_base_directory()
+        # if False == self.base:
+        #     sublime.error_message('Project doesn\'t seem to be a core project')
+        #     return
         self.window.show_quick_panel(self.options, self.on_done)
 
     def on_done(self, idx):
-        if -1 < idx and False != self.base:
+        #if -1 < idx and False != self.base:
+        if -1 < idx:
             command = self.commands[idx]
+            print('running command : ' + command)
             func = getattr(self, command)
             func()
 
@@ -34,6 +56,10 @@ class SublimeD3rCommand(sublime_plugin.WindowCommand):
     def run_queue(self):
         sublime.status_message('Running local queue for base path ' + self.base)
         RunQueueThread(self.base, self.log_output).start()
+
+    def new_model(self):
+        sublime.status_message('Creating new model')
+        self.window.run_command('sublime_d3r_new_model')
 
     def log_output(self, message):
         print("status is : " + str(message[0]))
@@ -49,28 +75,61 @@ class SublimeD3rCommand(sublime_plugin.WindowCommand):
         msg.set_name("D3R_OUTPUT")
         msg.run_command('output_result', { "message": message })
 
-    def find_base_directory(self, rootDir = False):
-        debug = True
-        if False == rootDir:
-            debug = False
-            rootDir = sublime.active_window().active_view().file_name()
 
-        root = os.path.abspath(os.path.join(rootDir, os.pardir))
+class SublimeD3rNewModelCommand(sublime_plugin.WindowCommand):
+    def run(self):
+        win = self.window
+        win.show_input_panel("Model name", "", self.on_done, None, None)
 
-        for dirname in os.listdir(root):
-            if "." == dirname or ".." == dirname:
-                continue
-            if "home" == dirname:
-                return False
-            if "/" == dirname:
-                return False
-            if "core" == dirname:
-                return root
-        return self.find_base_directory(root)
+    def on_done(self, name):
+        writer = ModelWriter()
+        writer.write(name)
+
+
+class FileWriter():
+    def write(self, name):
+        tpl = self.replace_tags(self.template(), name)
+        print("template : " + tpl)
+
+    def replace_tags(self, tpl):
+        return tpl
+
+    def get_module_name(self, name):
+        parts = name.partition('_')
+        return parts[0]
+
+    def template(self):
+        return None
+
+
+class ModelWriter(FileWriter):
+    def replace_tags(self, tpl, name):
+        parts  = name.partition('_')
+        module = parts[0].capitalize()
+        model  = parts[2][0].upper() + parts[2][1:]
+        name   = module + '_' + model
+        edits  = [ (':NAME:', name), (':TABLE_NAME:', name.lower()), (':ITEM_NAME:', model.lower()) ]
+        for tag,val in edits:
+            tpl = tpl.replace(tag, val)
+        return tpl
+
+    def template(self):
+        return """\
+<?php
+
+class :NAME: extends D3R_Model 
+{
+    protected $_tableName = ':TABLE_NAME:';
+    protected $_itemName  = ':ITEM_NAME:';
+}
+
+"""
+
 
 class OutputResultCommand(sublime_plugin.TextCommand):
     def run(self, edit, message):
         self.view.insert(edit, 0, message)
+
 
 class BaseThread(threading.Thread):
     base = False
@@ -98,9 +157,11 @@ class BaseThread(threading.Thread):
             if False != self.callback:
                 self.callback(result)
 
+
 class DBThread(BaseThread):
     def get_command(self):
         return 'core/tools/update_db.php'
+
 
 class RunQueueThread(BaseThread):
     def get_command(self):
