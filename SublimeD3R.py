@@ -82,14 +82,33 @@ class SublimeD3rNewModelCommand(sublime_plugin.WindowCommand):
         win.show_input_panel("Model name", "", self.on_done, None, None)
 
     def on_done(self, name):
-        writer = ModelWriter()
+        writer = ModelWriterPhp()
         writer.write(name)
+        xmlwriter = ModelWriterXml()
+        xmlwriter.write(name)
+
 
 
 class FileWriter():
     def write(self, name):
+        name = self.normalise_name(name)
         tpl = self.replace_tags(self.template(), name)
-        print("template : " + tpl)
+        # print("template : " + tpl)
+        path = self.get_path(name)
+        # print("path : " + path)
+        if (False == self.write_file(path, tpl)):
+            print("Unable to write file")
+        else:
+            print("File written ok")
+        
+    def write_file(self, path, tpl):
+        if os.path.exists(path):
+            print("path already exists : " + path)
+            return False
+        return open(path, "w+").write(tpl)
+
+    def normalise_name(self, name):
+        return name
 
     def replace_tags(self, tpl):
         return tpl
@@ -98,11 +117,18 @@ class FileWriter():
         parts = name.partition('_')
         return parts[0]
 
+    def get_path(self, name):
+        return false
+
     def template(self):
         return None
 
-
 class ModelWriter(FileWriter):
+    extension = False
+
+    def normalise_name(self, name):
+        return name.lower().title()
+
     def replace_tags(self, tpl, name):
         parts  = name.partition('_')
         module = parts[0].capitalize()
@@ -112,6 +138,21 @@ class ModelWriter(FileWriter):
         for tag,val in edits:
             tpl = tpl.replace(tag, val)
         return tpl
+
+    def get_path(self,name):
+        basedir = find_base_directory()
+        module = self.get_module_name(name)
+        # print("basedir : " + basedir)
+        # print("module : " + module)
+        # print("name : " + name)
+        path = os.path.join(basedir, 'modules', module, 'models', name + "." + self.get_extension())
+        return path
+
+    def get_extension(self):
+        return self.extension
+
+class ModelWriterPhp(ModelWriter):
+    extension = "php"
 
     def template(self):
         return """\
@@ -125,11 +166,40 @@ class :NAME: extends D3R_Model
 
 """
 
+class ModelWriterXml(ModelWriter):
+    extension = "xml"
+
+    def template(self):
+        return """\
+<?xml version='1.0' encoding='UTF-8'?>
+
+<!-- XML Definition for :NAME: -->
+
+<fields>
+
+    <field>
+        <name>Created</name>
+        <dbname>created</dbname>
+        <type>DateTime</type>
+        <default>now</default>
+        <required>False</required>
+        <listing>False</listing>
+    </field>
+    <field>
+        <name>Updated</name>
+        <dbname>updated</dbname>
+        <type>Updated</type>
+        <required>False</required>
+        <listing>False</listing>
+    </field>
+</fields>
+"""
+
+
 
 class OutputResultCommand(sublime_plugin.TextCommand):
     def run(self, edit, message):
         self.view.insert(edit, 0, message)
-
 
 class BaseThread(threading.Thread):
     base = False
@@ -157,11 +227,9 @@ class BaseThread(threading.Thread):
             if False != self.callback:
                 self.callback(result)
 
-
 class DBThread(BaseThread):
     def get_command(self):
         return 'core/tools/update_db.php'
-
 
 class RunQueueThread(BaseThread):
     def get_command(self):
