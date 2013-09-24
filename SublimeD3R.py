@@ -82,29 +82,41 @@ class SublimeD3rNewModelCommand(sublime_plugin.WindowCommand):
         win.show_input_panel("Model name", "", self.on_done, None, None)
 
     def on_done(self, name):
-        writer = ModelWriterPhp()
-        writer.write(name)
-        xmlwriter = ModelWriterXml()
-        xmlwriter.write(name)
+        paths = []
+        
+        try:
+            writer = ModelWriterPhp()
+            path = writer.write(name)
+            if False != path:
+                paths.append(path)
 
+            xmlwriter = ModelWriterXml()
+            path = xmlwriter.write(name)
+            if False != path:
+                paths.append(path)
+
+            if 0 < len(paths):
+                win = self.window
+                for path in paths:
+                    print("opening path : " + path)
+                    win.open_file(path)
+        except Exception as ex:
+            sublime.error_message(str(ex))
 
 
 class FileWriter():
     def write(self, name):
-        name = self.normalise_name(name)
-        tpl = self.replace_tags(self.template(), name)
-        # print("template : " + tpl)
-        path = self.get_path(name)
-        # print("path : " + path)
-        if (False == self.write_file(path, tpl)):
-            print("Unable to write file")
-        else:
-            print("File written ok")
+        name    = self.normalise_name(name)
+        tpl     = self.replace_tags(self.template(), name)
+        path    = self.get_path(name)
+        if False == self.write_file(path, tpl):
+            raise Exception('Unable to write path ' + path)
+        return path
         
     def write_file(self, path, tpl):
         if os.path.exists(path):
             print("path already exists : " + path)
-            return False
+            raise Exception('File already exists')
         return open(path, "w+").write(tpl)
 
     def normalise_name(self, name):
